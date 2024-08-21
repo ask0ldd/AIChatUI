@@ -1,14 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-unused-private-class-members */
 import { AIAgent } from "./AIAgent.js";
-import { answersSpectrumProducerPrompt, answerToAnswerComparisonPrompt, compareToPerfectAnswerPrompt, conversationistPrompt, jobExtractorPrompt, questionRatingViaScalePrompt, skillAssessementQuestionsSortingPrompt, skillRankingPrompt, skillsetGeneratorPrompt, skillToQuestionsPrompt } from "./AIPsyPrompts.js";
+import { answersSpectrumProducerPrompt, answerToAnswerComparisonPrompt, compareToPerfectAnswerPrompt, conversationistPrompt, jobExtractorPrompt, questionRatingViaScalePrompt, skillAssessementQuestionsSortingPrompt, skillRankingPrompt, skillsetGeneratorPrompt, skillToQuestionsPrompt } from "../prompts/AIPsyPrompts.ts";
 
 export class AISkillsetGeneratorAgent extends AIAgent{
     
-    #job : string | undefined = undefined
+    /*#job : string | undefined = undefined
 
     setTargetJob(job : string){
         this.#job = job
-    }
+    }*/
 
     override async rawCall(iter : number = 0) : Promise<string>{
         const currentIter = iter

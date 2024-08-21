@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * @class AIModel
  * @description A class representing an AI model for generating text and embeddings.
@@ -44,7 +45,7 @@ export class AIModel{
      * @description Sends a request to the AI model with the given prompt and returns the response.
      */
     async ask(prompt : string, streaming = false) : Promise<ICompletionResponse> {
-        console.log(streaming)
+        // console.log(streaming)
         const response = await fetch("http://127.0.0.1:11434/api/generate", {
             method: "POST",
             headers: {
