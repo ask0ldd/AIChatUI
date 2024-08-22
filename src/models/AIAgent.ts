@@ -12,7 +12,7 @@ export class AIAgent {
     #stream = false
     #responseParsingFn : ((llmResponse : string) => object) | undefined = undefined
 
-    models = ["llama3", "llama3.1:8b", "dolphin-llama3:8b-256k", "phi3:3.8-mini-128k-instruct-q4_K_M", "qwen2", "qwen2:1.5b", "qwen2:0.5b", "gemma2:9b"]
+    models = ["phi3.5", "llama3", "llama3.1:8b", "dolphin-llama3:8b-256k", "phi3:3.8-mini-128k-instruct-q4_K_M", "qwen2", "qwen2:1.5b", "qwen2:0.5b", "gemma2:9b"]
 
     defaultModel = "llama3.1:8b"
 
@@ -35,6 +35,12 @@ export class AIAgent {
         console.log('\n\u001b[1;32m... In ' + (currentIter+1) + ' attempt.\n\n')
         if(this.#request == "") throw new Error("Request is missing.")
         const response = await this.#model.ask(this.#request, this.#stream)
+        /*console.log(response.response)
+        let formatedResponse = (response.response).match(/\[{.*?}\]/gs)
+        if(formatedResponse == null) {
+            formatedResponse = (response.response).match(/\{"\s*([^}]*)\s*"\}/g)
+            if(formatedResponse == null) return this.rawCall(currentIter + 1)
+        }*/
         // this.#log(response.response)
         this.#lastOutput = response.response
         // test response ability to be parsing
