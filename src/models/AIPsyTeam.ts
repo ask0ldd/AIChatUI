@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-unused-private-class-members */
 import { AIAgent } from "./AIAgent.js";
-import { answersSpectrumProducerPrompt, answerToAnswerComparisonPrompt, compareToPerfectAnswerPrompt, conversationistPrompt, jobExtractorPrompt, questionRatingViaScalePrompt, skillAssessementQuestionsSortingPrompt, skillRankingPrompt, skillsetGeneratorPrompt, skillToQuestionsPrompt } from "../prompts/AIPsyPrompts.ts";
+import { answersSpectrumProducerPrompt, answerToAnswerComparisonPrompt, compareToPerfectAnswerPrompt, conversationistPrompt, jobExtractorPrompt, questionRatingViaScalePrompt, skillAssessementQuestionsSortingPrompt, skillsetGeneratorPrompt, skillToQuestionsPrompt } from "../prompts/AIPsyPrompts.ts";
 
 export class AISkillsetGeneratorAgent extends AIAgent{
     
