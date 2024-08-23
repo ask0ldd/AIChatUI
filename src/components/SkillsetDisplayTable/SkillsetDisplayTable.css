@@ -1,0 +1,44 @@
+table,
+thead,
+tbody {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+}
+
+thead {
+  background-color: #a2b1d366;
+  border-bottom: 1px solid #000;
+}
+
+table {
+  margin-top: 2rem;
+  border-collapse: separate;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+}
+
+tr {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 100%;
+}
+
+tr th:first-child {
+  max-width: 100px;
+  border-left: 1px solid #000;
+}
+
+.skill {
+  max-width: fit-content;
+}
+
+th {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 100%;
+  justify-content: left;
+  border-right: 1px solid #000;
+  border-bottom: 0;
+  padding: 0.5rem 1rem;
+}
