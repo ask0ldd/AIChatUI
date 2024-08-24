@@ -7,6 +7,7 @@ import { ISkill } from "../types/ISkill.ts";
 import { ChatService } from "../services/ChatService.ts";
 import '../style/Chat.css'
 import { OllamaService } from "../services/OllamaService.ts";
+import { IListModelResponse } from "../types/IListModelResponse.ts";
 
 function Chat() {
 
@@ -21,6 +22,7 @@ function Chat() {
     const [requiredSkillset, setRequiredSkillset] = useState([])
     const [questionsAssessingSkill, setQuestionsAssessingSkillResult] = useState([])
     const [rankedQuestions, setRankedQuestions] = useState([])
+    const [modelsList, setModelsList] = useState<string[]>([])
     
     const [lastContext, setLastContext] = useState<number[]>([])
 
@@ -33,7 +35,11 @@ function Chat() {
             try {
                 // generate perfect job title
                 const modelList = await OllamaService.getModelList()
-                console.log('modelList : ' + JSON.stringify(modelList))
+                if(modelList != null) {
+                    const ml = modelList?.models.map((model) => model?.model)
+                    setModelsList(ml)
+                }
+                // console.log('modelList : ' + JSON.stringify(modelList))
 
                 const jobExtractorResult = await AIPsyTeam.jobExtractorAgent.enableParsabilityCheck()
                     .setRequest(aerospaceEnginPrompt)
@@ -128,6 +134,9 @@ function Chat() {
 
     return (
         <>
+            <select style={{maxWidth:'300px', height: '2rem'}}>
+                {modelsList.map((model,id) => <option key={id}>{model}</option>)}
+            </select>
             {jobDisambiguation}<br/>
             <SkillsetDisplayTable skillset={requiredSkillset}/><br/><br/>
             {questionsAssessingSkill.map((question, index) =>
