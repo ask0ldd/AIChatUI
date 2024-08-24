@@ -190,10 +190,12 @@ export class AIModel{
 
     enableStreaming(){
         this.#stream = true
+        return this
     }
 
     disableStreaming(){
         this.#stream = false
+        return this
     }
 }
 
