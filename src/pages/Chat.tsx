@@ -21,6 +21,8 @@ function Chat() {
     const [requiredSkillset, setRequiredSkillset] = useState([])
     const [questionsAssessingSkill, setQuestionsAssessingSkillResult] = useState([])
     const [rankedQuestions, setRankedQuestions] = useState([])
+    
+    const [lastContext, setLastContext] = useState<number[]>([])
 
     const effectRef = useRef(0)
 
@@ -29,7 +31,7 @@ function Chat() {
             if(effectRef.current == 1) return
             if(effectRef.current == 0) effectRef.current = 1
             try {
-
+                // generate perfect job title
                 const modelList = await OllamaService.getModelList()
                 console.log('modelList : ' + JSON.stringify(modelList))
 
@@ -39,12 +41,14 @@ function Chat() {
                 const jobTitle = JSON.parse(jobExtractorResult).jobTitle
                 setJobDisambiguation(jobTitle)
 
+                // generate a skillset required for said job
                 const skillsetGeneratorResult = await AIPsyTeam.requiredSkillsetGeneratorAgent.enableParsabilityCheck()
                     .setRequest(jobTitle)
                     .call()
                 const skillset = JSON.parse(skillsetGeneratorResult)
                 setRequiredSkillset(skillset)
 
+                // generate a list of question to assess one skill
                 const questionsAssessingSkillResult = await AIPsyTeam.skillToQuestionsTranslatorAgent
                     .setRequest(`Here is the specified position :\n
                     ${jobTitle}\n\n
@@ -53,6 +57,7 @@ function Chat() {
                     .call()
                 setQuestionsAssessingSkillResult(JSON.parse(questionsAssessingSkillResult))
 
+                // ranking the list of question
                 const rankedQuestionsResult = await AIPsyTeam.skillAssessmentQuestionsRankingAgent
                     .setRequest(`Here is a javascript array containing the list of questions :\n
                     ${questionsAssessingSkill}\n\n
@@ -72,13 +77,53 @@ function Chat() {
 
     const textareaRef = useRef(null);
     const [history, setHistory] = useState<string[]>([])
+    const recentHistory = useRef<string[]>([])
 
-    async function handleSendMessage(){
+    async function handleSendMessage() : Promise<void>{
         if(textareaRef.current == null) return
         const historyCopy = [...history]
-        historyCopy.push(await ChatService.askQuestion((textareaRef.current as HTMLTextAreaElement).value))
-        setHistory(historyCopy);
+        const response = await ChatService.askQuestion((textareaRef.current as HTMLTextAreaElement).value, lastContext)
+        historyCopy.push(response.response)
+        setHistory(historyCopy)
+        setLastContext(response.context);
         (textareaRef.current as HTMLTextAreaElement).value=''
+    }
+
+    async function handleSendMessageStreaming() : Promise<string | void>{
+        if(textareaRef.current == null) return
+        const historyCopy = [...history]
+        historyCopy.push("")
+        recentHistory.current = historyCopy
+        setHistory(historyCopy)
+        const reader : ReadableStreamDefaultReader<Uint8Array> = await ChatService.askQuestionStreaming((textareaRef.current as HTMLTextAreaElement).value, lastContext)
+        let content = ""
+        while(true){
+            const { done, value } = await reader.read()
+            if (done) {
+                /*const rawjson = new TextDecoder().decode(value);
+                console.log(rawjson)
+                const json = JSON.parse(rawjson)
+                setLastContext(json.context)*/
+                break;
+            }
+            const rawjson = new TextDecoder().decode(value);
+            // console.log(rawjson)
+            const json = JSON.parse(rawjson)
+        
+            if (json.done === false) {
+                content += json.response
+                if(json?.context?.length > 0) setLastContext(json.context)
+                const newHistory = [...recentHistory.current]
+                newHistory[newHistory.length-1] = content
+                recentHistory.current = newHistory
+                setHistory(newHistory)
+            }
+        }
+        return content
+        /*historyCopy.push(response.response)
+        setHistory(historyCopy)
+        setLastContext(response.context);
+        (textareaRef.current as HTMLTextAreaElement).value=''*/
     }
 
     return (
@@ -100,7 +145,7 @@ function Chat() {
                 history.map((message, index) => <div style={{backgroundColor:index%2 == 0 ? '#fff' : '#eee'}} key={'message' + index}>{message}</div>)
             }
             <textarea ref={textareaRef} style={{margin:'2rem 0', resize:'none', height:'300px'}}></textarea>
-            <button onClick={handleSendMessage}>send</button>
+            <button onClick={handleSendMessageStreaming}>send</button>
         </>
       );
 }
