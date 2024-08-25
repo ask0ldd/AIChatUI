@@ -3,11 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import ChatHistory from "../components/ChatHistory";
 import { AIPsyTeam } from "../models/AIPsyTeam";
 import SkillsetDisplayTable from "../components/SkillsetDisplayTable/SkillsetDisplayTable.tsx"
-import { ISkill } from "../types/ISkill.ts";
 import { ChatService } from "../services/ChatService.ts";
 import '../style/Chat.css'
 import { OllamaService } from "../services/OllamaService.ts";
-import { IListModelResponse } from "../types/IListModelResponse.ts";
+import { ISkill } from "../types/ISkill.ts";
 
 function Chat() {
 
@@ -17,44 +16,46 @@ function Chat() {
     const aerospaceEnginPrompt = "Aerospace Engineer"
     const hotelRepectionistPrompt = "Hotel Receptionist in a luxury hotel"
 
-    // memo : when trying to retrieve async value, need useState + useEffect
-    const [jobDisambiguation, setJobDisambiguation] = useState("")
-    const [requiredSkillset, setRequiredSkillset] = useState([])
-    const [questionsAssessingSkill, setQuestionsAssessingSkillResult] = useState([])
-    const [rankedQuestions, setRankedQuestions] = useState([])
+    const [jobDisambiguation, setJobDisambiguation] = useState<string>("")
+    const [requiredSkillset, setRequiredSkillset] = useState<ISkill[]>([])
+    const [questionsAssessingSkill, setQuestionsAssessingSkillResult] = useState<string[]>([])
+    const [rankedQuestions, setRankedQuestions] = useState<string[]>([])
     const [modelsList, setModelsList] = useState<string[]>([])
     
     const [lastContext, setLastContext] = useState<number[]>([])
 
-    const effectRef = useRef(0)
+    const effectRef = useRef<number>(0);
 
+    // memo : when trying to retrieve async value, need useState + useEffect
     useEffect(() => {
         async function fetchJobDisambiguation () {
             if(effectRef.current == 1) return
             if(effectRef.current == 0) effectRef.current = 1
             try {
-                // generate perfect job title
+                // listing all the models installed on the users machine
                 const modelList = await OllamaService.getModelList()
                 if(modelList != null) {
                     const ml = modelList?.models.map((model) => model?.model)
                     setModelsList(ml)
                 }
-                // console.log('modelList : ' + JSON.stringify(modelList))
 
-                const jobExtractorResult = await AIPsyTeam.jobExtractorAgent.enableParsabilityCheck()
+                // generating a perfect job title
+                const jobExtractorResult = await AIPsyTeam.jobExtractorAgent
+                    .enableParsabilityCheck()
                     .setRequest(aerospaceEnginPrompt)
                     .call()
                 const jobTitle = JSON.parse(jobExtractorResult).jobTitle
                 setJobDisambiguation(jobTitle)
 
-                // generate a skillset required for said job
-                const skillsetGeneratorResult = await AIPsyTeam.requiredSkillsetGeneratorAgent.enableParsabilityCheck()
+                // generating a skillset required for said job
+                const skillsetGeneratorResult = await AIPsyTeam.requiredSkillsetGeneratorAgent
+                    .enableParsabilityCheck()
                     .setRequest(jobTitle)
                     .call()
                 const skillset = JSON.parse(skillsetGeneratorResult)
                 setRequiredSkillset(skillset)
 
-                // generate a list of question to assess one skill
+                // generating a list of question to assess one skill
                 const questionsAssessingSkillResult = await AIPsyTeam.skillToQuestionsTranslatorAgent
                     .setRequest(`Here is the specified position :\n
                     ${jobTitle}\n\n
@@ -63,7 +64,7 @@ function Chat() {
                     .call()
                 setQuestionsAssessingSkillResult(JSON.parse(questionsAssessingSkillResult))
 
-                // ranking the list of question
+                // reranking the previous list of questions
                 const rankedQuestionsResult = await AIPsyTeam.skillAssessmentQuestionsRankingAgent
                     .setRequest(`Here is a javascript array containing the list of questions :\n
                     ${questionsAssessingSkill}\n\n
@@ -79,7 +80,6 @@ function Chat() {
         }
         fetchJobDisambiguation()
     }, [])
-    // <SkillsetDisplayTable skillset={JSON.parse(requiredSkillset)}/>
 
     const textareaRef = useRef(null);
     const [history, setHistory] = useState<string[]>([])
@@ -98,6 +98,7 @@ function Chat() {
     async function handleSendMessageStreaming() : Promise<string | void>{
         if(textareaRef.current == null) return
         const historyCopy = [...history]
+        historyCopy.push((textareaRef.current as HTMLTextAreaElement).value)
         historyCopy.push("")
         recentHistory.current = historyCopy
         setHistory(historyCopy)
@@ -106,30 +107,25 @@ function Chat() {
         while(true){
             const { done, value } = await reader.read()
             if (done) {
-                /*const rawjson = new TextDecoder().decode(value);
-                console.log(rawjson)
-                const json = JSON.parse(rawjson)
-                setLastContext(json.context)*/
                 break;
             }
-            const rawjson = new TextDecoder().decode(value);
-            // console.log(rawjson)
-            const json = JSON.parse(rawjson)
+
+            const stringifiedJson = new TextDecoder().decode(value);
+            const json = JSON.parse(stringifiedJson)
+
+            if(json.done && json?.context) setLastContext(json.context)
         
-            if (json.done === false) {
+            if (!json.done) {
                 content += json.response
-                if(json?.context?.length > 0) setLastContext(json.context)
+                if(json?.context?.length > 0) console.log("falsedone : " + json?.context)
                 const newHistory = [...recentHistory.current]
                 newHistory[newHistory.length-1] = content
                 recentHistory.current = newHistory
-                setHistory(newHistory)
+                setHistory(newHistory);
+                (textareaRef.current as HTMLTextAreaElement).value=''
             }
         }
         return content
-        /*historyCopy.push(response.response)
-        setHistory(historyCopy)
-        setLastContext(response.context);
-        (textareaRef.current as HTMLTextAreaElement).value=''*/
     }
 
     return (
