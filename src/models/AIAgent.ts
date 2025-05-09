@@ -1,47 +1,132 @@
-import { AIModel } from "./AIModel.js"
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import IAIAgentPartialParams from "../types/IAIAgentPartialParams.js"
+import TAgentReturnValue from "../types/TAgentReturnValue.js"
+import { AIModel, IAIModelParams } from "./AIModel.js"
 
-export class AIAgent {
+export class AIAgent extends AIModel {
 
-    #name! : string
+    readonly #id : string
+    #name : string
+    #type : 'system' | 'user_created' = "user_created"
+    #favorite : boolean = false
+    #targetFilesNames : string[] = []
+    #webSearchEconomy: boolean = false
+
     #maxIter = 5
-    #model! : AIModel
     #request = ""
     #lastOutput : unknown = ""
     #regexValidator : RegExp | undefined
     #verifyParsability = false
-    #stream = false
     #responseParsingFn : ((llmResponse : string) => object) | undefined = undefined
+    #observers : (AIAgent)[] = []
+    #onUpdate?: (state: string, systemPrompt? : string) => Promise<TAgentReturnValue | void>
 
     models = ["phi3.5", "llama3", "llama3.1:8b", "dolphin-llama3:8b-256k", "phi3:3.8-mini-128k-instruct-q4_K_M", "qwen2", "qwen2:1.5b", "qwen2:0.5b", "gemma2:9b"]
 
-    defaultModel = "llama3.1:8b"
+    defaultModel = "qwen3:8b"
 
-    constructor(name : string, model : string = "llama3.1:8b"){
+    /*constructor(name : string, model : string = "qwen3:8b"){
         this.#name = name
-        this.#model = new AIModel({modelName : model}).setTemperature(0.1).setContextSize(8000).setContext([]).setSystemPrompt("You are an helpful assistant.")
-    }
+        this.#model = new AIModel({modelName : model})
+            .setTemperature(0.1)
+            .setContextSize(8000)
+            .setContext([])
+            .setSystemPrompt("You are an helpful assistant.")
+            .activateDiscardThinking({startWith : "<think>", endWith : "</think>"})
+    }*/
 
-    setModel(model : AIModel) : AIAgent{
-        this.#model = model
+    constructor({
+        id = "",
+        name, 
+        modelName = "llama3.1:8b", 
+        systemPrompt = "You are an helpful assistant.", 
+        temperature = 0.8, 
+        mirostat = 0, 
+        mirostat_eta = 0.1, 
+        mirostat_tau = 5.0, 
+        num_ctx = 2048,
+        context = [],
+        repeat_last_n = 64, 
+        repeat_penalty = 1.1, 
+        seed = 0,
+        stop = ["\n", "user:", "AI assistant:"], 
+        tfs_z = 1, 
+        num_predict = 1024,
+        top_k = 40,
+        top_p = 0.9,
+        type = "user_created",
+        favorite = false,
+        webSearchEconomy = false,
+        min_p = 0.0,
+        num_keep = 5,
+        typical_p = 0.7,
+        presence_penalty = 1.5,
+        frequency_penalty = 1.0,
+        penalize_newline = true,
+        numa = false,
+        num_batch = 2,
+        num_gpu = 1,
+        main_gpu = 0,
+        low_vram = false,
+        vocab_only = false,
+        use_mmap = true,
+        use_mlock = false,
+        num_thread = 8,
+        targetFilesNames = [],
+        onUpdate = undefined,
+    } : IAIModelParams & IAIAgentPartialParams)
+    {
+        super({
+            modelName, 
+            systemPrompt, 
+            temperature,
+            mirostat,
+            mirostat_eta,
+            mirostat_tau,
+            context,
+            num_ctx,
+            repeat_last_n,
+            repeat_penalty,
+            seed,
+            stop,
+            tfs_z,
+            num_predict,
+            top_k,
+            top_p,
+            min_p,
+            num_keep,
+            typical_p,
+            presence_penalty,
+            frequency_penalty,
+            penalize_newline,
+            numa,
+            num_batch,
+            num_gpu,
+            main_gpu,
+            low_vram,
+            vocab_only,
+            use_mmap,
+            use_mlock,
+            num_thread,
+        })
+        this.#id = id
+        this.#name = name
+        this.#type = type
+        this.#favorite = favorite
+        this.#targetFilesNames = targetFilesNames
+        this.#webSearchEconomy = webSearchEconomy
         return this
     }
 
     get model() : AIModel{
-        return this.#model
+        return this.getModel()
     }
 
     async rawCall(iter : number = 0) : Promise<string>{
         const currentIter: number = iter
         console.log('\n\u001b[1;32m... In ' + (currentIter+1) + ' attempt.\n\n')
         if(this.#request == "") throw new Error("Request is missing.")
-        const response = await this.#model.ask(this.#request, this.#stream)
-        /*console.log(response.response)
-        let formatedResponse = (response.response).match(/\[{.*?}\]/gs)
-        if(formatedResponse == null) {
-            formatedResponse = (response.response).match(/\{"\s*([^}]*)\s*"\}/g)
-            if(formatedResponse == null) return this.rawCall(currentIter + 1)
-        }*/
-        // this.#log(response.response)
+        const response = await this.ask(this.#request)
         this.#lastOutput = response.response
         // test response ability to be parsing
         if(this.#verifyParsability && !this.parsingCheck(response.response) && currentIter+1 < this.#maxIter) return this.rawCall(currentIter + 1)
@@ -59,7 +144,7 @@ export class AIAgent {
         const currentIter: number = iter
         console.log('\n\u001b[1;32m... In ' + (currentIter+1) + ' attempt.\n\n')
         if(this.#request == "") throw new Error("Request is missing.")
-        const response = await this.#model.ask(this.#request, this.#stream)
+        const response = await this.ask(this.#request)
         // this.#log(response.response)
         this.#lastOutput = this.#responseParsingFn(response.response)
         // test response ability to be parsing
@@ -69,11 +154,6 @@ export class AIAgent {
         // if not formatted properly after all the iterations => throws
         if(currentIter+1 >= this.#maxIter) throw new Error(`Couldn't format the reponse the right way despite the ${this.#maxIter} iterations.`)
         return this.#responseParsingFn(response.response)
-    }
-
-
-    async callStream() : Promise<ReadableStreamDefaultReader<Uint8Array>>{
-        return await this.#model.askForAStreamedResponse(this.#request)
     }
 
     checkOutputValidity(output : string, regex : RegExp) : boolean{
@@ -99,23 +179,217 @@ export class AIAgent {
         console.log("\n\n\u001b[1;35m" + this.#name + ' :\n\u001b[1;36m' + text)
     }
 
+    getId() : string {
+        return this.#id
+    }
+
+    getName() : string{
+        return this.#name
+    }
+
+    getWebSearchEconomy() : boolean {
+        return this.#webSearchEconomy
+    }
+
+    getType() : 'system' | 'user_created' {
+        return this.#type
+    }
+
+    getFavorite() : boolean {
+        return this.#favorite
+    }
+
+    getTargetFilesNames() : string[]{
+        return this.#targetFilesNames
+    }
+
+    setName(name : string) : AIAgent {
+        this.#name = name
+        return this
+    }
+
+    setWebSearchEconomy(webSearchEconomy: boolean) {
+        this.#webSearchEconomy = webSearchEconomy
+        return this
+    }
+
+    setType(type : string) {
+        if(type!== 'system' && type!=='user_created') throw new Error('invalid type')
+        this.#type = type
+    }
+
+    setFavorite(favorite : boolean){
+        this.#favorite = favorite
+    }
+
+    setTargetFilesNames(filesnames : string[]) : AIAgent{
+        this.#targetFilesNames = filesnames
+        return this
+    }
+
+    asString(){
+        return JSON.stringify(
+            {
+                id : this.getId(),
+                name : this.#name,
+                modelName: this.getModelName(),
+                model: this.getModelName(),
+                systemPrompt: this.getSystemPrompt(),
+                num_ctx: this.getContextSize(),
+                temperature: this.getTemperature(),
+                num_predict: this.getNumPredict(),
+                mirostat: this.getMirostat(),
+                mirostat_eta: this.getMirostatEta(),
+                mirostat_tau: this.getMirostatTau(),
+                repeat_last_n: this.getRepeatLastN(),
+                repeat_penalty: this.getRepeatPenalty(),
+                seed: this.getSeed(),
+                stop: this.getStop(),
+                tfs_z: this.getTfsZ(),
+                top_k: this.getTopK(),
+                top_p: this.getTopP(),
+                type: this.getType(),
+                favorite: this.getFavorite()
+            }
+        )
+    }
+
+    onUpdate(callback : (state: string) => Promise<TAgentReturnValue | void >){
+        /*const boundCallback = (state : string) => {
+            return callback.call(this, state)
+        }*/
+        this.#onUpdate = callback //boundCallback
+    }
+
+    toObject(){
+        return({
+            id : this.getId(),
+            name : this.#name,
+            modelName: this.getModelName(),
+            systemPrompt: this.getSystemPrompt(),
+            num_ctx: this.getContextSize(),
+            temperature: this.getTemperature(),
+            num_predict: this.getNumPredict(),
+            mirostat: this.getMirostat(),
+            mirostat_eta: this.getMirostatEta(),
+            mirostat_tau: this.getMirostatTau(),
+            repeat_last_n: this.getRepeatLastN(),
+            repeat_penalty: this.getRepeatPenalty(),
+            seed: this.getSeed(),
+            stop: this.getStop(),
+            tfs_z: this.getTfsZ(),
+            top_k: this.getTopK(),
+            top_p: this.getTopP(),
+            type: this.getType(),
+            favorite: this.getFavorite()
+        })
+    }
+    
+    clone() : AIAgent{
+        return new AIAgent({
+            id : this.getId(),
+            name : this.#name,
+            modelName: this.getModelName(),
+            systemPrompt: this.getSystemPrompt(),
+            num_ctx: this.getContextSize(),
+            temperature: this.getTemperature(),
+            num_predict: this.getNumPredict(),
+            mirostat: this.getMirostat(),
+            mirostat_eta: this.getMirostatEta(),
+            mirostat_tau: this.getMirostatTau(),
+            repeat_last_n: this.getRepeatLastN(),
+            repeat_penalty: this.getRepeatPenalty(),
+            seed: this.getSeed(),
+            stop: this.getStop(),
+            tfs_z: this.getTfsZ(),
+            top_k: this.getTopK(),
+            top_p: this.getTopP(),
+            type: this.getType(),
+            favorite: this.getFavorite(),
+            min_p: this.getMinP(),
+            num_keep: this.getNumKeep(),
+            typical_p: this.getTypicalP(),
+            presence_penalty: this.getPresencePenalty(),
+            frequency_penalty: this.getFrequencyPenalty(),
+            penalize_newline: this.getPenalizeNewline(),
+            numa: this.getNuma(),
+            num_batch: this.getNumBatch(),
+            num_gpu: this.getNumGpu(),
+            main_gpu: this.getMainGpu(),
+            low_vram: this.getLowVram(),
+            vocab_only: this.getVocabOnly(),
+            use_mmap: this.getUseMmap(),
+            use_mlock: this.getUseMlock(),
+            num_thread: this.getNumThread(),
+        })
+       // return Object.create(this)
+    }
+
+    // Observer methods / observer[0] -> AIAgent, observer[1] -> ProgressTracker
+    async update(response: string): Promise<TAgentReturnValue | void> {
+        try {
+            let result: TAgentReturnValue | void
+    
+            // if the onUpdate callback has been defined, use it
+            if (this.#onUpdate) {
+                result = await this.#onUpdate(response)
+            } else {
+                // if not, LLM.ask
+                result = await this.defaultAskLLMCallback(response)
+            }
+    
+            if (result && this.#observers.length > 0) {
+                return await this.notifyObservers(result)
+            }
+    
+            return result
+        } catch (error) {
+            console.error(`Error when trying to update the agent ${this.#name} :`, error)
+        }
+    }
+
+    async defaultAskLLMCallback(query : string) : Promise<TAgentReturnValue | void>{
+        try{
+            const response = await this.ask(query)
+            // if there is no observer listening to this agent (last agent of the chain)
+            // if(this.#observers.length < 1) return response
+            // if there is at least an observer
+            // return await this.notifyObservers(response)
+            return response
+        }catch(error){
+            console.error('Error while trying to communicate with the model : ', error)
+            throw error
+        }
+    }
+
+    addObserver(observer : AIAgent) {
+        this.#observers.push(observer);
+    }
+
+    getObservers(){
+        return this.#observers
+    }
+
+    // notify the next agent in the chain
+    // & the chainProgressTracker
+    async notifyObservers(response : TAgentReturnValue) : Promise<TAgentReturnValue | void> {
+        /*this.#observers.forEach(observer => {
+            if(observer instanceof ProgressTracker) observer.update(response)
+        })*/
+        for(const observer of this.#observers){
+            // if(observer instanceof Mediator) return observer.update((typeof(response) === "object" && 'response' in response) ? {sourceNode : this.#name, data : response.response} : {sourceNode : this.#name, data : response})
+            if(observer instanceof AIAgent) return observer.update((typeof(response) === "object" && 'response' in response) ? response.response : response)
+        }
+        return undefined
+    }
+
     setRequest(request : string) : AIAgent{
         this.#request = request
         return this
     }
 
-    setTemperature(temp : number): AIAgent{
-        this.model.setTemperature(temp)
-        return this
-    }
-
-    setSystemPrompt(prompt : string) : AIAgent{
-        this.#model.setSystemPrompt(prompt)
-        return this
-    }
-
     resetContext(): AIAgent{
-        this.#model.setContext([])
+        this.setContext([])
         return this
     }
 
@@ -134,7 +408,7 @@ export class AIAgent {
     }
 
     getModel() : AIModel{
-        return this.#model
+        return this.getModel()
     }
 
     getLog() : (text : string) => void {
@@ -155,18 +429,6 @@ export class AIAgent {
 
     setLastOutput(lastOutput : string) : void{
         this.#lastOutput = lastOutput
-    }
-
-    enableStreaming(){
-        this.#model.enableStreaming()
-        this.#stream = true
-        return this
-    }
-
-    disableStreaming(){
-        this.#model.disableStreaming()
-        this.#stream = false
-        return this
     }
 
     setReplyParsingFn(parsingFn : (llmResponse : string) => object){
