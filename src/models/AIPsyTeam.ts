@@ -27,34 +27,34 @@ export class AISkillsetGeneratorAgent extends AIAgent{
 
 export class AIPsyTeam{
 
-    static jobExtractorAgent = new AIAgent("Job Extractor Agent").resetContext().setTemperature(0.3)
+    static jobExtractorAgent = new AIAgent({name : "Job Extractor Agent", modelName: 'qwen3:8b'}).resetContext().setTemperature(0.3).activateDiscardThinking({startWith : "<think>", endWith : "</think>"})
     .setSystemPrompt(jobExtractorPrompt)
 
     // !!! should mix own knowledge with whats found only?
-    static requiredSkillsetGeneratorAgent = new AIAgent("Skillset Generator").resetContext().setTemperature(0.6)
+    static requiredSkillsetGeneratorAgent = new AIAgent({name : "Skillset Generator", modelName: 'qwen3:8b'}).resetContext().activateDiscardThinking({startWith : "<think>", endWith : "</think>"}).setTemperature(0.6)
     .setSystemPrompt(skillsetGeneratorPrompt)
 
-    static skillToQuestionsTranslatorAgent = new AIAgent("Skill To Question Translator Agent").resetContext().setTemperature(0.6)
+    static skillToQuestionsTranslatorAgent = new AIAgent({name : "Skill To Question Translator Agent", modelName: 'qwen3:8b'}).resetContext().setTemperature(0.6).activateDiscardThinking({startWith : "<think>", endWith : "</think>"})
     .setSystemPrompt(skillToQuestionsPrompt)
 
-    static conversationistAgent = new AIAgent("Conversationist").resetContext()
+    static conversationistAgent = new AIAgent({name : "Conversationist", modelName: 'qwen3:8b'}).resetContext().activateDiscardThinking({startWith : "<think>", endWith : "</think>"})
     .setSystemPrompt(conversationistPrompt)
 
     /*static skillRankingAgent = new AIAgent("Skill Ranking Agent").resetContext()
     .setSystemPrompt(skillRankingPrompt)*/
 
-    static skillAssessmentQuestionsRankingAgent = new AIAgent("Skill Assessment Questions Ranking Agent").resetContext()
+    static skillAssessmentQuestionsRankingAgent = new AIAgent({name : "Skill Assessment Questions Ranking Agent", modelName: 'qwen3:8b'}).resetContext().activateDiscardThinking({startWith : "<think>", endWith : "</think>"})
     .setSystemPrompt(skillAssessementQuestionsSortingPrompt)
 
-    static skillAssessmentQuestion_TenAnswersSpectrumProducerAgent = new AIAgent("Itw Question Answers Spectrum Producer Agent").resetContext().setTemperature(0.6)
+    static skillAssessmentQuestion_TenAnswersSpectrumProducerAgent = new AIAgent({name : "Itw Question Answers Spectrum Producer Agent", modelName: 'qwen3:8b'}).resetContext().setTemperature(0.6).activateDiscardThinking({startWith : "<think>", endWith : "</think>"})
     .setSystemPrompt(answersSpectrumProducerPrompt)
 
-    static candidateAnswerRankingAgent = new AIAgent("Candidate Answer Ranking Agent").resetContext().setTemperature(0.3)
+    static candidateAnswerRankingAgent = new AIAgent({name : "Candidate Answer Ranking Agent", modelName: 'qwen3:8b'}).resetContext().setTemperature(0.3).activateDiscardThinking({startWith : "<think>", endWith : "</think>"})
     .setSystemPrompt(questionRatingViaScalePrompt)
 
-    static oneOnOneAnswersComparisonAgent = new AIAgent("Answer to Answer Comparison Agent").resetContext().setTemperature(0.3)
+    static oneOnOneAnswersComparisonAgent = new AIAgent({name : "Answer to Answer Comparison Agent", modelName: 'qwen3:8b'}).resetContext().setTemperature(0.3).activateDiscardThinking({startWith : "<think>", endWith : "</think>"})
     .setSystemPrompt(answerToAnswerComparisonPrompt)
 
-    static compareToPerfectAnswerAgent = new AIAgent("Compare to Perfect Answer Agent").resetContext().setTemperature(0.3)
+    static compareToPerfectAnswerAgent = new AIAgent({name : "Compare to Perfect Answer Agent", modelName: 'qwen3:8b'}).resetContext().setTemperature(0.3).activateDiscardThinking({startWith : "<think>", endWith : "</think>"})
     .setSystemPrompt(compareToPerfectAnswerPrompt)
 }
