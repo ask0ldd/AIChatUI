@@ -12,7 +12,7 @@ export class ChatService{
     static async askQuestion(question : string, context:number[] = []) : Promise<{context : number[], response : string}>
     {
         console.log('question : '+ question)
-        const model = new AIModel({modelName : "llama3.1:8b"}).setTemperature(0.1).setContextSize(8000).setContext(context).setSystemPrompt("You are an helpful assistant.")
+        const model = new AIModel({modelName : "qwen3:8b"}).setTemperature(0.1).setContextSize(8000).setContext(context).setSystemPrompt("You are an helpful assistant.")
         const answer = (await model.ask(question))
         return {context : answer.context as number[], response : answer.response}
     }
@@ -24,10 +24,10 @@ export class ChatService{
      * @param {number[]} [context=[]] An optional array of numbers that serves as context for the question.
      * @returns {Promise<ReadableStreamDefaultReader<Uint8Array>>} A promise resolving to a ReadableStream of responses from the AI model.
      */
-    static async askQuestionStreaming(question : string, context:number[] = []) :  Promise<ReadableStreamDefaultReader<Uint8Array>>
+    static async askQuestionStreaming(question : string, context:number[] = []) :  Promise<ReadableStreamDefaultReader<string>>
     {
         console.log('question : '+ question)
-        const model = new AIModel({modelName : "llama3.1:8b"}).setTemperature(0.1).enableStreaming().setContextSize(8000).setContext(context).setSystemPrompt("You are an helpful assistant.")
+        const model = new AIModel({modelName : "qwen3:8b"}).setTemperature(0.1).setContextSize(8000).setContext(context).setSystemPrompt("You are an helpful assistant.")
         return await model.askForAStreamedResponse(question)
     }
 }

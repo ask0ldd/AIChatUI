@@ -95,14 +95,14 @@ function Chat() {
         (textareaRef.current as HTMLTextAreaElement).value=''
     }
 
-    async function handleSendMessageStreaming() : Promise<string | void>{
+    /*async function handleSendMessageStreaming() : Promise<string | void>{
         if(textareaRef.current == null) return
         const historyCopy = [...history]
         historyCopy.push((textareaRef.current as HTMLTextAreaElement).value)
         historyCopy.push("")
         recentHistory.current = historyCopy
         setHistory(historyCopy)
-        const reader : ReadableStreamDefaultReader<Uint8Array> = await ChatService.askQuestionStreaming((textareaRef.current as HTMLTextAreaElement).value, lastContext)
+        const reader : ReadableStreamDefaultReader<string> = await ChatService.askQuestionStreaming((textareaRef.current as HTMLTextAreaElement).value, lastContext)
         let content = ""
         while(true){
             const { done, value } = await reader.read()
@@ -126,7 +126,7 @@ function Chat() {
             }
         }
         return content
-    }
+    }*/
 
     return (
         <>
@@ -150,7 +150,7 @@ function Chat() {
                 history.map((message, index) => <div style={{backgroundColor:index%2 == 0 ? '#fff' : '#eee'}} key={'message' + index}>{message}</div>)
             }
             <textarea ref={textareaRef} style={{margin:'2rem 0', resize:'none', height:'300px'}}></textarea>
-            <button onClick={handleSendMessageStreaming}>send</button>
+            <button>send</button>
         </>
       );
 }
