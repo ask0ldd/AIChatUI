@@ -27,7 +27,7 @@ function Chat() {
     const effectRef = useRef<number>(0);
 
     // memo : when trying to retrieve async value, need useState + useEffect
-    useEffect(() => {
+    /*useEffect(() => {
         async function fetchJobDisambiguation () {
             if(effectRef.current == 1) return
             if(effectRef.current == 0) effectRef.current = 1
@@ -79,7 +79,7 @@ function Chat() {
             }
         }
         fetchJobDisambiguation()
-    }, [])
+    }, [])*/
 
     const textareaRef = useRef(null);
     const [history, setHistory] = useState<string[]>([])
@@ -147,10 +147,10 @@ function Chat() {
             }
             <ChatHistory/>
             {
-                history.map((message, index) => <div style={{backgroundColor:index%2 == 0 ? '#fff' : '#eee'}} key={'message' + index}>{message}</div>)
+                history.map((message, index) => <div style={{backgroundColor:index%2 == 0 ? '#fff' : '#eee', textAlign : 'left', padding : '1rem'}} key={'message' + index}>{message}</div>)
             }
             <textarea ref={textareaRef} style={{margin:'2rem 0', resize:'none', height:'300px'}}></textarea>
-            <button>send</button>
+            <button onClick={handleSendMessage}>send</button>
         </>
       );
 }

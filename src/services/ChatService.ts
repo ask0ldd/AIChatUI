@@ -12,7 +12,7 @@ export class ChatService{
     static async askQuestion(question : string, context:number[] = []) : Promise<{context : number[], response : string}>
     {
         console.log('question : '+ question)
-        const model = new AIModel({modelName : "qwen3:8b"}).setTemperature(0.1).setContextSize(8000).setContext(context).setSystemPrompt("You are an helpful assistant.")
+        const model = new AIModel({modelName : "qwen3:8b"}).setTemperature(0.1).setContextSize(8000).setContext(context).setSystemPrompt("You are an helpful assistant.").activateDiscardThinking({startWith : '<think>', endWith : '</think>'})
         const answer = (await model.ask(question))
         return {context : answer.context as number[], response : answer.response}
     }
